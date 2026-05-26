@@ -1,0 +1,44 @@
+services:
+  db:
+    image: mysql:8.4
+    container_name: revisa-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-revisa}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-troque-essa-senha}
+    ports:
+      - "${MYSQL_HOST_PORT:-3307}:3306"
+    volumes:
+      - revisa_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD:-troque-essa-senha}"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+
+  api:
+    build: .
+    container_name: revisa-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: ${DB_URL:-jdbc:mysql://db:3306/revisa}
+      DB_USERNAME: ${DB_USERNAME:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-troque-essa-senha}
+      JWT_SECRET: ${JWT_SECRET:-troque-por-um-segredo-grande-com-pelo-menos-32-caracteres}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-3600000}
+      JWT_ISSUER: ${JWT_ISSUER:-revisa-api}
+      FIRST_USER_ADMIN_ENABLED: ${FIRST_USER_ADMIN_ENABLED:-true}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-none}
+      JPA_SHOW_SQL: ${JPA_SHOW_SQL:-false}
+      JPA_OPEN_IN_VIEW: ${JPA_OPEN_IN_VIEW:-false}
+      FLYWAY_ENABLED: ${FLYWAY_ENABLED:-true}
+      FLYWAY_BASELINE_ON_MIGRATE: ${FLYWAY_BASELINE_ON_MIGRATE:-true}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-*}
+    ports:
+      - "${API_HOST_PORT:-8080}:8080"
+
+volumes:
+  revisa_mysql_data:

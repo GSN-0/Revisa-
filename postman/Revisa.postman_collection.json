@@ -1,0 +1,656 @@
+{
+  "info": {
+    "name": "Revisa - Fluxo Principal",
+    "description": "Coleção organizada por fluxo: cadastro, login, matéria, conteúdo, revisão, conclusão, filtros e dashboard.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "materiaId",
+      "value": ""
+    },
+    {
+      "key": "conteudoId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Autenticação",
+      "item": [
+        {
+          "name": "Cadastrar usuário de teste",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Usuário Teste\",\n  \"email\": \"teste@gmail.com\",\n  \"senha\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login retornou token', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.token).to.be.a('string').and.not.empty;",
+                  "  pm.collectionVariables.set('token', json.token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"teste@gmail.com\",\n  \"senha\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Matérias",
+      "item": [
+        {
+          "name": "Criar matéria - Java",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Matéria criada', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.id).to.exist;",
+                  "  pm.collectionVariables.set('materiaId', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Java e Spring\",\n  \"descricao\": \"Estudos de Java, Spring Boot, APIs REST e segurança.\",\n  \"cor\": \"#2563EB\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/materias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "materias"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar matérias",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/materias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "materias"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar matérias paginado",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/materias?page=0&size=10&sort=nome,asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "materias"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                },
+                {
+                  "key": "sort",
+                  "value": "nome,asc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Resumo por matéria",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/materias/{{materiaId}}/resumo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "materias",
+                "{{materiaId}}",
+                "resumo"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Conteúdos",
+      "item": [
+        {
+          "name": "Criar conteúdo - Spring Security",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Conteúdo criado', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.id).to.exist;",
+                  "  pm.collectionVariables.set('conteudoId', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Spring Security com JWT\",\n  \"descricao\": \"Estudei autenticação, filtros e geração de token JWT.\",\n  \"dataEstudo\": \"2026-05-05\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/materias/{{materiaId}}/conteudos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "materias",
+                "{{materiaId}}",
+                "conteudos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar todos os conteúdos",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/conteudos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "conteudos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar conteúdos paginado",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/conteudos?page=0&size=10&sort=proximaRevisao,asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "conteudos"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                },
+                {
+                  "key": "sort",
+                  "value": "proximaRevisao,asc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Registrar evolução",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nivelDominio\": 4,\n  \"observacaoEvolucao\": \"Entendi autenticação e filtros, mas ainda preciso revisar permissões.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/conteudos/{{conteudoId}}/evolucao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "conteudos",
+                "{{conteudoId}}",
+                "evolucao"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Revisar conteúdo",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/conteudos/{{conteudoId}}/revisar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "conteudos",
+                "{{conteudoId}}",
+                "revisar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar revisões pendentes",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/conteudos/pendentes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "conteudos",
+                "pendentes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Concluir conteúdo",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/conteudos/{{conteudoId}}/concluir",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "conteudos",
+                "{{conteudoId}}",
+                "concluir"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reativar conteúdo",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/conteudos/{{conteudoId}}/reativar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "conteudos",
+                "{{conteudoId}}",
+                "reativar"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Filtros e Dashboard",
+      "item": [
+        {
+          "name": "Filtrar por domínio válido",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/conteudos/por-dominio?nivel=4",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "conteudos",
+                "por-dominio"
+              ],
+              "query": [
+                {
+                  "key": "nivel",
+                  "value": "4"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filtrar por domínio inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Domínio inválido retorna erro', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.text()).to.include('Nível de domínio deve estar entre 1 e 5');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/conteudos/por-dominio?nivel=8",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "conteudos",
+                "por-dominio"
+              ],
+              "query": [
+                {
+                  "key": "nivel",
+                  "value": "8"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filtrar por período",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/conteudos/periodo?inicio=2026-05-01&fim=2026-05-31",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "conteudos",
+                "periodo"
+              ],
+              "query": [
+                {
+                  "key": "inicio",
+                  "value": "2026-05-01"
+                },
+                {
+                  "key": "fim",
+                  "value": "2026-05-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Dashboard",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

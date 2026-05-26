@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revisa</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="authScreen" class="auth-screen">
+    <section class="auth-panel">
+      <div class="brand-block">
+        <div class="brand-mark">R</div>
+        <div>
+          <h1>Revisa</h1>
+          <p>Planejamento de estudos com revisão espaçada.</p>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" data-auth-tab="login">Entrar</button>
+        <button class="tab" data-auth-tab="register">Criar conta</button>
+      </div>
+
+      <form id="loginForm" class="auth-form">
+        <label>Email
+          <input id="loginEmail" type="email" required autocomplete="email">
+        </label>
+        <label>Senha
+          <input id="loginSenha" type="password" required autocomplete="current-password">
+        </label>
+        <button type="submit" class="primary-action">Entrar</button>
+      </form>
+
+      <form id="registerForm" class="auth-form hidden">
+        <label>Nome
+          <input id="registerNome" type="text" required autocomplete="name">
+        </label>
+        <label>Email
+          <input id="registerEmail" type="email" required autocomplete="email">
+        </label>
+        <label>Senha
+          <input id="registerSenha" type="password" minlength="6" required autocomplete="new-password">
+        </label>
+        <button type="submit" class="primary-action">Criar conta</button>
+      </form>
+
+      <p id="authMessage" class="message"></p>
+    </section>
+  </div>
+
+  <div id="appShell" class="app-shell hidden">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-mark small">R</div>
+        <div>
+          <strong>Revisa</strong>
+          <span id="userEmail">Carregando...</span>
+        </div>
+      </div>
+
+      <nav class="nav-list">
+        <button class="nav-item active" data-view="dashboard">Início</button>
+        <button class="nav-item" data-view="materias">Matérias</button>
+        <button class="nav-item" data-view="conteudos">Conteúdos</button>
+        <button class="nav-item" data-view="revisoes">Revisões</button>
+        <button class="nav-item" data-view="perfil">Perfil</button>
+      </nav>
+
+      <button id="themeToggle" class="theme-toggle" type="button" aria-label="Alternar tema" title="Alternar tema">
+        <span id="themeIcon" aria-hidden="true">☀</span>
+      </button>
+      <button id="logoutButton" class="ghost-action">Sair</button>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Workspace pessoal</p>
+          <h2 id="viewTitle">Início</h2>
+        </div>
+        <button id="refreshButton" class="secondary-action">Atualizar</button>
+      </header>
+
+      <section id="dashboardView" class="view active-view">
+        <div class="metrics-grid">
+          <article class="metric-card">
+            <span>Matérias</span>
+            <strong id="metricMaterias">0</strong>
+          </article>
+          <article class="metric-card">
+            <span>Conteúdos</span>
+            <strong id="metricConteudos">0</strong>
+          </article>
+          <article class="metric-card">
+            <span>Pendentes</span>
+            <strong id="metricPendentes">0</strong>
+          </article>
+          <article class="metric-card">
+            <span>Ativos</span>
+            <strong id="metricAtivos">0</strong>
+          </article>
+          <article class="metric-card">
+            <span>Concluídos</span>
+            <strong id="metricConcluidos">0</strong>
+          </article>
+          <article class="metric-card">
+            <span>Média de domínio</span>
+            <strong id="metricDominio">0.0</strong>
+          </article>
+        </div>
+
+        <section class="today-panel">
+          <div>
+            <p class="eyebrow">Plano de hoje</p>
+            <h3 id="dashboardStatusText">Carregando revisões...</h3>
+            <p id="dashboardNextReview" class="item-meta">Buscando sua próxima revisão.</p>
+          </div>
+          <div class="today-stats">
+            <span><strong id="metricAtrasadas">0</strong> atrasadas</span>
+            <span><strong id="metricHoje">0</strong> para hoje</span>
+            <span><strong id="metricProximas">0</strong> próximas</span>
+          </div>
+        </section>
+
+        <div class="charts-grid">
+          <section class="chart-panel">
+            <div class="section-title">
+              <h3>Conteúdos por matéria</h3>
+            </div>
+            <div id="materiasChart" class="bar-chart"></div>
+          </section>
+          <section class="chart-panel">
+            <div class="section-title">
+              <h3>Distribuição de domínio</h3>
+            </div>
+            <div id="dominioChart" class="domain-chart"></div>
+          </section>
+        </div>
+
+        <div class="content-grid">
+          <section>
+            <div class="section-title">
+              <h3>Prioridade agora</h3>
+            </div>
+            <div id="dashboardPendentes" class="item-list"></div>
+          </section>
+          <section>
+            <div class="section-title">
+              <h3>Matérias recentes</h3>
+            </div>
+            <div id="dashboardMaterias" class="item-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="materiasView" class="view">
+        <form id="materiaForm" class="inline-form">
+          <input id="materiaId" type="hidden">
+          <label>Nome
+            <input id="materiaNome" type="text" required placeholder="Matemática">
+          </label>
+          <label>Descrição
+            <input id="materiaDescricao" type="text" placeholder="Conteúdos de cálculo">
+          </label>
+          <label>Cor
+            <input id="materiaCor" type="color" value="#3b82f6">
+          </label>
+          <button type="submit" class="primary-action">Salvar matéria</button>
+          <button id="cancelMateriaEdit" type="button" class="secondary-action hidden">Cancelar</button>
+        </form>
+        <div id="materiasList" class="item-list spaced"></div>
+      </section>
+
+      <section id="conteudosView" class="view">
+        <form id="conteudoForm" class="inline-form">
+          <input id="conteudoId" type="hidden">
+          <label>Matéria
+            <select id="conteudoMateria" required></select>
+          </label>
+          <label>Título
+            <input id="conteudoTitulo" type="text" required placeholder="Spring Security com JWT">
+          </label>
+          <label>Data de estudo
+            <input id="conteudoData" type="date" required>
+          </label>
+          <label class="wide-field">Descrição
+            <textarea id="conteudoDescricao" rows="3" placeholder="Estudei autenticação, filtros e geração de token JWT."></textarea>
+          </label>
+          <button id="saveConteudoButton" type="submit" class="primary-action">Cadastrar conteúdo</button>
+          <button id="cancelConteudoEdit" type="button" class="secondary-action hidden">Cancelar edição</button>
+        </form>
+        <div class="filters-bar">
+          <label>Domínio
+            <select id="filterDominio">
+              <option value="">Todos</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </label>
+          <label>Data início
+            <input id="filterInicio" type="date">
+          </label>
+          <label>Data fim
+            <input id="filterFim" type="date">
+          </label>
+          <button id="clearConteudoFilters" type="button" class="secondary-action">Limpar filtros</button>
+        </div>
+        <div id="conteudosList" class="item-list spaced"></div>
+      </section>
+
+      <section id="revisoesView" class="view">
+        <div class="section-title revision-heading">
+          <h3>Agenda de revisões</h3>
+          <p class="item-meta">Conteúdos organizados por urgência para você saber por onde começar.</p>
+        </div>
+        <div class="revision-summary-grid">
+          <article class="revision-summary-card late">
+            <span>Atrasadas</span>
+            <strong id="revisionLateCount">0</strong>
+          </article>
+          <article class="revision-summary-card today">
+            <span>Hoje</span>
+            <strong id="revisionTodayCount">0</strong>
+          </article>
+          <article class="revision-summary-card upcoming">
+            <span>Próximas</span>
+            <strong id="revisionUpcomingCount">0</strong>
+          </article>
+        </div>
+
+        <section class="calendar-panel">
+          <div class="section-title">
+            <h3 id="calendarTitle">Calendário de revisões</h3>
+            <p class="item-meta">Dias com revisão aparecem destacados conforme a urgência.</p>
+          </div>
+          <div class="calendar-weekdays">
+            <span>Dom</span>
+            <span>Seg</span>
+            <span>Ter</span>
+            <span>Qua</span>
+            <span>Qui</span>
+            <span>Sex</span>
+            <span>Sáb</span>
+          </div>
+          <div id="revisionCalendar" class="revision-calendar"></div>
+          <div id="calendarDayDetails" class="calendar-day-details"></div>
+        </section>
+
+        <div class="revision-board">
+          <section>
+            <div class="section-title">
+              <h3>Atrasadas</h3>
+            </div>
+            <div id="revisoesAtrasadas" class="item-list"></div>
+          </section>
+          <section>
+            <div class="section-title">
+              <h3>Hoje</h3>
+            </div>
+            <div id="revisoesHoje" class="item-list"></div>
+          </section>
+          <section>
+            <div class="section-title">
+              <h3>Próximas</h3>
+            </div>
+            <div id="revisoesProximas" class="item-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="perfilView" class="view">
+        <form id="perfilForm" class="inline-form compact-form">
+          <label>Nome
+            <input id="perfilNome" type="text" required>
+          </label>
+          <button type="submit" class="primary-action">Atualizar perfil</button>
+        </form>
+
+        <form id="senhaForm" class="inline-form compact-form">
+          <label>Senha atual
+            <input id="senhaAtual" type="password" required>
+          </label>
+          <label>Nova senha
+            <input id="novaSenha" type="password" minlength="6" required>
+          </label>
+          <button type="submit" class="primary-action">Trocar senha</button>
+        </form>
+      </section>
+
+      <p id="appMessage" class="message"></p>
+    </main>
+  </div>
+
+  <div id="dominioModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="dominioModalTitle">
+    <section class="modal-panel">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">Evolução</p>
+          <h3 id="dominioModalTitle">Registrar domínio</h3>
+        </div>
+        <button id="closeDominioModal" class="icon-action" type="button" aria-label="Fechar">×</button>
+      </div>
+
+      <form id="dominioForm" class="modal-form">
+        <input id="dominioConteudoId" type="hidden">
+        <label>Nível de domínio
+          <select id="dominioNivel" required>
+            <option value="">Selecione</option>
+            <option value="1">1 - Muito difícil</option>
+            <option value="2">2 - Difícil</option>
+            <option value="3">3 - Médio</option>
+            <option value="4">4 - Bom</option>
+            <option value="5">5 - Excelente</option>
+          </select>
+        </label>
+        <label>Observação
+          <textarea id="dominioObservacao" rows="4" placeholder="Ex: entendi filtros JWT, mas preciso revisar permissões."></textarea>
+        </label>
+        <p id="dominioMessage" class="message"></p>
+        <div class="modal-actions">
+          <button id="cancelDominioModal" type="button" class="secondary-action">Cancelar</button>
+          <button type="submit" class="primary-action">Salvar domínio</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
