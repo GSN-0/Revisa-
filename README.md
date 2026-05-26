@@ -211,23 +211,3 @@ A coleção usa variáveis:
 - `conteudoId`
 
 Depois do login, o token é salvo automaticamente. Depois de criar matéria e conteúdo, os IDs também são salvos automaticamente.
-
-## Prints para apresentação
-
-Guarde os prints em:
-
-```text
-docs/screenshots/
-```
-
-Sugestões de prints:
-
-- Tela de login.
-- Dashboard com gráficos.
-- Cadastro de matéria.
-- Cadastro/listagem de conteúdos.
-- Calendário de revisões.
-- Modal de domínio.
-- Swagger aberto com rotas principais.
-
-Esses prints ajudam a explicar rapidamente que o projeto tem backend, frontend, autenticação e fluxo real de uso.
