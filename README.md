@@ -2,6 +2,17 @@
 
 Sistema mobile/web de planejamento de estudos baseado em revisão espaçada. A API permite cadastrar matérias, registrar conteúdos estudados, calcular revisões, acompanhar pendências, registrar evolução de domínio e visualizar indicadores no dashboard.
 
+## Recursos principais
+
+- Autenticação JWT com perfis `USER` e `ADMIN`.
+- Matérias e conteúdos isolados por usuário.
+- Agenda visual com revisões atrasadas, de hoje e futuras.
+- Regra de espaçamento adaptada ao nível de domínio.
+- Histórico persistido de revisões por conteúdo.
+- Dashboard, calendário mensal, gráficos, busca, filtros, paginação e exportação CSV.
+- Dados de exemplo opcionais para contas vazias.
+- Área administrativa simples para listar usuários.
+
 ## Tecnologias
 
 - Java 25
@@ -38,6 +49,7 @@ JWT_SECRET=troque-por-um-segredo-grande-em-producao
 JWT_EXPIRATION_MS=86400000
 JWT_ISSUER=revisa-api
 FIRST_USER_ADMIN_ENABLED=true
+DEMO_DATA_ENABLED=true
 ```
 
 Rode a API:
@@ -58,11 +70,13 @@ O frontend fica em:
 frontend/index.html
 ```
 
-Por padrão, o frontend chama a API em `http://localhost:8080`. Se o backend estiver em outro endereço, defina `window.REVISA_API_URL` antes de carregar `app.js`. Há um exemplo em:
+Por padrão, o frontend chama a API em `http://localhost:8080`. Se o backend estiver em outro endereço, ajuste:
 
 ```text
-frontend/config.example.js
+frontend/config.js
 ```
+
+O arquivo `frontend/config.example.js` mostra um exemplo para publicação.
 
 ## Como rodar com Docker
 
@@ -80,8 +94,29 @@ docker compose up --build
 
 Serviços principais:
 
+- Frontend: `http://localhost:3000`
 - API: `http://localhost:8080`
 - MySQL: `localhost:3307`
+
+Abra `http://localhost:3000` no navegador para usar o sistema. A porta `8080` expõe somente a API e exige autenticação nas rotas protegidas.
+
+## Rodar backend local com banco Docker
+
+O Maven não carrega automaticamente as variáveis do arquivo `.env`. Para executar a API fora do Docker usando o MySQL do Compose, primeiro deixe somente o banco ativo:
+
+```powershell
+docker compose up -d db
+$env:DB_URL="jdbc:mysql://localhost:3307/revisa"
+$env:DB_USERNAME="root"
+$env:DB_PASSWORD="troque-essa-senha"
+mvn spring-boot:run
+```
+
+Se você alterou `MYSQL_ROOT_PASSWORD` no seu `.env`, use o mesmo valor em `DB_PASSWORD`. Antes de executar o Maven localmente, pare o container da API para liberar a porta `8080`:
+
+```powershell
+docker compose stop api
+```
 
 ## Configuração para produção
 
@@ -90,6 +125,7 @@ O arquivo `.env.example` é voltado para uso local e apresentação. Para um amb
 - `JWT_SECRET` com segredo forte e aleatório.
 - `CORS_ALLOWED_ORIGINS` com o domínio real do frontend.
 - `FIRST_USER_ADMIN_ENABLED=false` depois de criar o admin inicial.
+- `DEMO_DATA_ENABLED=false` para desativar a carga de dados de apresentação.
 - Senhas de banco diferentes das credenciais de teste.
 
 As credenciais `admin@gmail.com / 123456` e `teste@gmail.com / 123456` devem ficar restritas ao ambiente local de demonstração.
@@ -108,6 +144,12 @@ Migration inicial:
 
 ```text
 V1__init.sql
+```
+
+Migration de histórico:
+
+```text
+V2__revisoes_historico.sql
 ```
 
 Como o Flyway controla a criação das tabelas, o Hibernate não deve criar ou alterar tabelas automaticamente:
@@ -161,6 +203,22 @@ A regra combina quantidade de revisões com nível de domínio:
 
 Na prática, isso deixa o projeto mais inteligente que uma agenda fixa, porque a frequência se adapta ao progresso do estudante.
 
+Cada revisão também gera uma entrada no histórico do conteúdo com data, domínio usado no cálculo e próxima revisão.
+
+## Dados de demonstração
+
+Com `DEMO_DATA_ENABLED=true`, uma conta vazia pode carregar dados de exemplo pelo dashboard ou por:
+
+```text
+POST /demo/seed
+```
+
+O carregamento só funciona uma vez por conta vazia. Em produção, mantenha `DEMO_DATA_ENABLED=false`.
+
+## CI
+
+O workflow `.github/workflows/ci.yml` executa `./mvnw test` em pushes e pull requests para `main`.
+
 ## Testes
 
 Rodar todos os testes:
@@ -178,8 +236,18 @@ Cobertura atual:
 Última execução validada:
 
 ```text
-Tests run: 33, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 37, Failures: 0, Errors: 0, Skipped: 0
 ```
+
+## Publicação
+
+Para um deploy simples de portfólio:
+
+1. Publique a API Docker em um serviço com MySQL persistente.
+2. Configure as variáveis usando `.env.production.example` como referência.
+3. Publique a pasta `frontend/` em hospedagem estática.
+4. Troque `window.REVISA_API_URL` em `frontend/config.js` pela URL HTTPS da API.
+5. Configure `CORS_ALLOWED_ORIGINS` com a URL HTTPS exata do frontend.
 
 ## Postman
 

@@ -11,6 +11,8 @@
   --danger: #b91c1c;
   --success: #166534;
   --shadow: 0 12px 30px rgba(34, 31, 27, 0.08);
+  --bar-width: 0%;
+  --bar-color: var(--accent);
 }
 
 body.dark-theme {
@@ -63,6 +65,27 @@ button:disabled {
 
 .hidden {
   display: none !important;
+}
+
+.app-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.loading-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--line);
+  border-right-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
 }
 
 .auth-screen {
@@ -470,6 +493,10 @@ body.dark-theme .nav-item:hover {
   margin-bottom: 24px;
 }
 
+#seedDemoButton {
+  margin-bottom: 24px;
+}
+
 .chart-panel,
 .calendar-panel {
   background: var(--panel);
@@ -679,9 +706,47 @@ body.dark-theme .nav-item:hover {
   border: 1px solid var(--line);
   border-radius: 8px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
   gap: 14px;
   align-items: end;
+}
+
+.list-tools {
+  margin-top: 14px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.list-tools label {
+  width: min(420px, 100%);
+}
+
+.filter-summary,
+.spacing-hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.filter-summary {
+  margin-top: 8px;
+}
+
+.pagination-bar {
+  min-height: 38px;
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.spacing-hint {
+  margin-top: 6px;
+  color: var(--accent);
 }
 
 .revision-heading {
@@ -908,6 +973,20 @@ body.dark-theme .nav-item:hover {
   flex-wrap: wrap;
 }
 
+.history-list {
+  display: grid;
+  gap: 10px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.history-item {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -979,7 +1058,7 @@ body.dark-theme .nav-item:hover {
   }
 
   .nav-list {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   }
 
   .nav-item {
@@ -1012,6 +1091,11 @@ body.dark-theme .nav-item:hover {
   .compact-form,
   .filters-bar {
     grid-template-columns: 1fr;
+  }
+
+  .list-tools {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .wide-field {

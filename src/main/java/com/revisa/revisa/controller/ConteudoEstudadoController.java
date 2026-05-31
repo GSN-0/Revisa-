@@ -4,6 +4,7 @@ import com.revisa.revisa.config.OpenApiConfig;
 import com.revisa.revisa.dto.ConteudoEstudadoRequest;
 import com.revisa.revisa.dto.ConteudoEstudadoResponse;
 import com.revisa.revisa.dto.EvolucaoRequest;
+import com.revisa.revisa.dto.RevisaoHistoricoResponse;
 import com.revisa.revisa.exception.BadRequestException;
 import com.revisa.revisa.service.ConteudoEstudadoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -62,6 +63,16 @@ public class ConteudoEstudadoController {
     ) {
         String email = authentication.getName();
         return ResponseEntity.ok(service.revisar(email, id));
+    }
+
+    @GetMapping("/conteudos/{id}/historico")
+    @Operation(summary = "Listar histórico de revisões", description = "Lista as revisões registradas para um conteúdo do usuário autenticado.")
+    public ResponseEntity<List<RevisaoHistoricoResponse>> listarHistorico(
+            Authentication authentication,
+            @PathVariable Long id
+    ) {
+        String email = authentication.getName();
+        return ResponseEntity.ok(service.listarHistorico(email, id));
     }
 
     @GetMapping("/materias/{materiaId}/conteudos")

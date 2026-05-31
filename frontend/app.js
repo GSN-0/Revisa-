@@ -8,11 +8,16 @@ const state = {
   materias: [],
   conteudos: [],
   pendentes: [],
+  adminUsers: [],
   conteudoFilters: {
+    busca: "",
     dominio: "",
     inicio: "",
     fim: "",
   },
+  materiaSearch: "",
+  conteudoPage: 1,
+  conteudoPageSize: 6,
   dominioModalConteudoId: null,
   currentView: "dashboard",
   selectedCalendarDate: todayIsoDate(),
@@ -43,6 +48,10 @@ function setMessage(target, text, type = "") {
   el.className = `message ${type}`.trim();
 }
 
+function setAppLoading(isLoading) {
+  $("#appLoading")?.classList.toggle("hidden", !isLoading);
+}
+
 function clearSession(message = "") {
   localStorage.removeItem("revisa.token");
   state.token = null;
@@ -51,9 +60,11 @@ function clearSession(message = "") {
   state.materias = [];
   state.conteudos = [];
   state.pendentes = [];
+  state.adminUsers = [];
   state.dominioModalConteudoId = null;
   showAuth();
   closeDominioModal();
+  closeHistoricoModal();
   setMessage("#appMessage", "");
   if (message) {
     setMessage("#authMessage", message, "error");
@@ -168,6 +179,7 @@ function activateView(view) {
     conteudos: "Conteúdos",
     revisoes: "Revisões",
     perfil: "Perfil",
+    admin: "Administração",
   };
 
   const title = $("#viewTitle");
@@ -178,6 +190,67 @@ function formatDate(date) {
   if (!date) return "Sem data";
   const [year, month, day] = date.split("-");
   return `${day}/${month}/${year}`;
+}
+
+function daysUntil(date) {
+  if (!date) return null;
+  const today = new Date(`${todayIsoDate()}T00:00:00`);
+  const target = new Date(`${date}T00:00:00`);
+  return Math.round((target - today) / 86400000);
+}
+
+function formatReviewDistance(date) {
+  const days = daysUntil(date);
+  if (days === null) return "sem data agendada";
+  if (days < -1) return `atrasada há ${Math.abs(days)} dias`;
+  if (days === -1) return "atrasada há 1 dia";
+  if (days === 0) return "para hoje";
+  if (days === 1) return "amanhã";
+  return `em ${days} dias`;
+}
+
+function getDomainSpacingHint(nivel) {
+  const hints = {
+    1: "Domínio baixo: a próxima revisão fica mais próxima.",
+    2: "Domínio em desenvolvimento: o intervalo continua curto.",
+    3: "Domínio intermediário: o intervalo segue o ciclo padrão.",
+    4: "Bom domínio: o intervalo de revisão aumenta.",
+    5: "Domínio alto: o conteúdo recebe o maior espaçamento.",
+  };
+  return hints[Number(nivel)] || "Informe o domínio para ajustar o espaçamento das revisões.";
+}
+
+function normalizeSearch(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function csvCell(value) {
+  return `"${String(value ?? "").replace(/"/g, '""')}"`;
+}
+
+function exportConteudosCsv() {
+  const conteudos = getFilteredConteudos();
+  const headers = ["Título", "Matéria", "Data de estudo", "Próxima revisão", "Revisões", "Domínio", "Status"];
+  const rows = conteudos.map((conteudo) => [
+    conteudo.titulo,
+    conteudo.materiaNome,
+    conteudo.dataEstudo,
+    conteudo.proximaRevisao,
+    conteudo.quantidadeRevisoes ?? 0,
+    conteudo.nivelDominio ?? "",
+    conteudo.concluido ? "Concluído" : "Em andamento",
+  ]);
+  const csv = [headers, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
+  const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `revisa-conteudos-${todayIsoDate()}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 function todayIsoDate() {
@@ -230,6 +303,12 @@ function emptyState(title, text, actionLabel = "", actionView = "") {
 
 function getFilteredConteudos() {
   return state.conteudos.filter((conteudo) => {
+    const busca = normalizeSearch(state.conteudoFilters.busca);
+    const searchable = normalizeSearch(`${conteudo.titulo} ${conteudo.descricao || ""} ${conteudo.materiaNome || ""}`);
+    if (busca && !searchable.includes(busca)) {
+      return false;
+    }
+
     if (state.conteudoFilters.dominio && String(conteudo.nivelDominio) !== state.conteudoFilters.dominio) {
       return false;
     }
@@ -244,6 +323,12 @@ function getFilteredConteudos() {
 
     return true;
   });
+}
+
+function getFilteredMaterias() {
+  const busca = normalizeSearch(state.materiaSearch);
+  if (!busca) return state.materias;
+  return state.materias.filter((materia) => normalizeSearch(`${materia.nome} ${materia.descricao || ""}`).includes(busca));
 }
 
 function renderMateriaCard(materia) {
@@ -266,6 +351,38 @@ function renderMateriaCard(materia) {
   `;
 }
 
+function renderAdminUsers() {
+  const adminNav = $("#adminNavItem");
+  const isAdmin = state.user?.role === "ADMIN";
+  adminNav?.classList.toggle("hidden", !isAdmin);
+  if (!isAdmin) return;
+
+  const totalAdmins = state.adminUsers.filter((user) => user.role === "ADMIN").length;
+  $("#adminMetrics").innerHTML = `
+    <article class="metric-card">
+      <span>Usuários</span>
+      <strong>${state.adminUsers.length}</strong>
+    </article>
+    <article class="metric-card">
+      <span>Administradores</span>
+      <strong>${totalAdmins}</strong>
+    </article>
+  `;
+  $("#adminUsersList").innerHTML = state.adminUsers.length
+    ? state.adminUsers.map((user) => `
+      <article class="item-card">
+        <div class="item-row">
+          <div>
+            <div class="item-title">${escapeHtml(user.nome)}</div>
+            <p class="item-meta">${escapeHtml(user.email)}</p>
+          </div>
+          <span class="status-badge ${user.role === "ADMIN" ? "today" : "upcoming"}">${escapeHtml(user.role)}</span>
+        </div>
+      </article>
+    `).join("")
+    : emptyCard("Nenhum usuário encontrado.");
+}
+
 function renderConteudoCard(conteudo, includeReviewActions = true) {
   const concluido = conteudo.concluido ? "Concluído" : "Em andamento";
   const dominio = conteudo.nivelDominio ? `Domínio ${conteudo.nivelDominio}` : "Domínio não informado";
@@ -285,17 +402,19 @@ function renderConteudoCard(conteudo, includeReviewActions = true) {
           <p class="item-meta">${escapeHtml(conteudo.descricao || "Sem descrição")}</p>
           <p class="item-meta">
             ${escapeHtml(conteudo.materiaNome || "Matéria")} · estudo em ${formatDate(conteudo.dataEstudo)}
-            · próxima revisão ${formatDate(conteudo.proximaRevisao)}
+            · próxima revisão ${formatDate(conteudo.proximaRevisao)} (${formatReviewDistance(conteudo.proximaRevisao)})
             · ${conteudo.quantidadeRevisoes ?? 0} revisões
             · ${dominio}
             · ${concluido}
           </p>
+          <p class="spacing-hint">${escapeHtml(getDomainSpacingHint(conteudo.nivelDominio))}</p>
           ${conteudo.observacaoEvolucao ? `<p class="item-meta">Observação: ${escapeHtml(conteudo.observacaoEvolucao)}</p>` : ""}
         </div>
         ${includeReviewActions ? `
           <div class="actions-row">
             <button class="item-action" data-revisar="${conteudo.id}">Revisar</button>
             <button class="item-action" data-evolucao="${conteudo.id}">Domínio</button>
+            <button class="item-action" data-historico="${conteudo.id}">Histórico</button>
             <button class="item-action" data-edit-conteudo="${conteudo.id}">Editar</button>
             <button class="item-action danger" data-delete-conteudo="${conteudo.id}">Excluir</button>
             ${statusAction}
@@ -491,7 +610,12 @@ function renderDashboardCharts() {
 }
 
 function renderAll() {
+  const filteredMaterias = getFilteredMaterias();
   const filteredConteudos = getFilteredConteudos();
+  const totalConteudoPages = Math.max(1, Math.ceil(filteredConteudos.length / state.conteudoPageSize));
+  state.conteudoPage = Math.min(state.conteudoPage, totalConteudoPages);
+  const pageStart = (state.conteudoPage - 1) * state.conteudoPageSize;
+  const pagedConteudos = filteredConteudos.slice(pageStart, pageStart + state.conteudoPageSize);
   const revisionGroups = getRevisionGroups();
   const priorityReviews = [...revisionGroups.atrasadas, ...revisionGroups.hoje].slice(0, 4);
 
@@ -505,18 +629,32 @@ function renderAll() {
   renderDashboardFocus(revisionGroups);
   renderDashboardCharts();
   renderRevisionCalendar();
+  renderAdminUsers();
+  $("#seedDemoButton").classList.toggle("hidden", state.materias.length > 0 || state.conteudos.length > 0);
 
-  $("#materiasList").innerHTML = state.materias.length
-    ? state.materias.map(renderMateriaCard).join("")
-    : emptyState("Nenhuma matéria cadastrada", "Crie uma matéria para organizar seus conteúdos de estudo.", "Criar matéria", "materias");
+  $("#materiasList").innerHTML = filteredMaterias.length
+    ? filteredMaterias.map(renderMateriaCard).join("")
+    : state.materias.length
+      ? emptyState("Nenhuma matéria encontrada", "Ajuste a busca para encontrar outra matéria.")
+      : emptyState("Nenhuma matéria cadastrada", "Crie uma matéria para organizar seus conteúdos de estudo.", "Criar matéria", "materias");
+  $("#materiaResultCount").textContent = `${filteredMaterias.length} de ${state.materias.length} matéria${state.materias.length === 1 ? "" : "s"}`;
 
   $("#dashboardMaterias").innerHTML = state.materias.length
     ? state.materias.slice(0, 4).map(renderMateriaCard).join("")
     : emptyState("Comece por uma matéria", "Depois dela você já consegue cadastrar conteúdos e gerar revisões.", "Criar matéria", "materias");
 
-  $("#conteudosList").innerHTML = filteredConteudos.length
-    ? filteredConteudos.map((conteudo) => renderConteudoCard(conteudo)).join("")
-    : emptyState("Nenhum conteúdo encontrado", state.materias.length ? "Cadastre um conteúdo ou ajuste os filtros aplicados." : "Cadastre uma matéria antes de adicionar conteúdos.", state.materias.length ? "Cadastrar conteúdo" : "Criar matéria", state.materias.length ? "conteudos" : "materias");
+  $("#conteudosList").innerHTML = pagedConteudos.length
+    ? pagedConteudos.map((conteudo) => renderConteudoCard(conteudo)).join("")
+      : emptyState("Nenhum conteúdo encontrado", state.materias.length ? "Cadastre um conteúdo ou ajuste os filtros aplicados." : "Cadastre uma matéria antes de adicionar conteúdos.", state.materias.length ? "Cadastrar conteúdo" : "Criar matéria", state.materias.length ? "conteudos" : "materias");
+  const activeFilterCount = Object.values(state.conteudoFilters).filter(Boolean).length;
+  $("#conteudoFilterSummary").textContent = `${filteredConteudos.length} de ${state.conteudos.length} conteúdo${state.conteudos.length === 1 ? "" : "s"}${activeFilterCount ? ` · ${activeFilterCount} filtro${activeFilterCount > 1 ? "s" : ""} ativo${activeFilterCount > 1 ? "s" : ""}` : ""}`;
+  $("#conteudosPagination").innerHTML = filteredConteudos.length > state.conteudoPageSize
+    ? `
+      <button class="secondary-action" type="button" data-conteudo-page="${state.conteudoPage - 1}" ${state.conteudoPage === 1 ? "disabled" : ""}>Anterior</button>
+      <span>Página ${state.conteudoPage} de ${totalConteudoPages}</span>
+      <button class="secondary-action" type="button" data-conteudo-page="${state.conteudoPage + 1}" ${state.conteudoPage === totalConteudoPages ? "disabled" : ""}>Próxima</button>
+    `
+    : "";
 
   renderRevisionGroup("#revisoesAtrasadas", revisionGroups.atrasadas, "Nenhuma revisão atrasada. Bom sinal.");
   renderRevisionGroup("#revisoesHoje", revisionGroups.hoje, "Nenhuma revisão para hoje.");
@@ -561,6 +699,33 @@ function closeDominioModal() {
   setMessage("#dominioMessage", "");
 }
 
+async function openHistoricoModal(conteudoId) {
+  const conteudo = state.conteudos.find((item) => String(item.id) === String(conteudoId));
+  if (!conteudo) return;
+
+  $("#historicoModalTitle").textContent = `Histórico - ${conteudo.titulo}`;
+  $("#historicoList").innerHTML = `<p class="item-meta">Carregando histórico...</p>`;
+  $("#historicoModal").classList.remove("hidden");
+
+  try {
+    const historico = asList(await request(`/conteudos/${conteudoId}/historico`));
+    $("#historicoList").innerHTML = historico.length
+      ? historico.map((item) => `
+        <article class="history-item">
+          <strong>${formatDate(item.dataRevisao)}</strong>
+          <p class="item-meta">Revisão ${item.quantidadeRevisoes} · domínio ${item.nivelDominio} · próxima em ${formatDate(item.proximaRevisao)}</p>
+        </article>
+      `).join("")
+      : emptyCard("Nenhuma revisão registrada ainda.");
+  } catch (error) {
+    $("#historicoList").innerHTML = `<p class="message error">${escapeHtml(error.message)}</p>`;
+  }
+}
+
+function closeHistoricoModal() {
+  $("#historicoModal")?.classList.add("hidden");
+}
+
 async function loadData() {
   state.user = await request("/users/me");
   state.dashboard = await request("/dashboard").catch(() => null);
@@ -576,6 +741,9 @@ async function loadData() {
   }
 
   state.pendentes = asList(await request("/conteudos/pendentes").catch(() => []));
+  state.adminUsers = state.user?.role === "ADMIN"
+    ? asList(await request("/users").catch(() => []))
+    : [];
   renderAll();
 }
 
@@ -586,10 +754,13 @@ async function bootstrap() {
   }
 
   try {
+    setAppLoading(true);
     await loadData();
     showApp();
   } catch (error) {
     clearSession("Sua sessão expirou. Entre novamente para continuar.");
+  } finally {
+    setAppLoading(false);
   }
 }
 
@@ -668,6 +839,16 @@ function bindApp() {
     try {
       await withButtonLoading($("#refreshButton"), "Atualizando...", loadData);
       setMessage("#appMessage", "Dados atualizados.", "success");
+    } catch (error) {
+      setMessage("#appMessage", error.message, "error");
+    }
+  });
+
+  $("#seedDemoButton").addEventListener("click", async () => {
+    try {
+      await withButtonLoading($("#seedDemoButton"), "Carregando...", () => request("/demo/seed", { method: "POST" }));
+      await loadData();
+      setMessage("#appMessage", "Dados de exemplo carregados.", "success");
     } catch (error) {
       setMessage("#appMessage", error.message, "error");
     }
@@ -752,24 +933,35 @@ function bindApp() {
 
   $("#cancelConteudoEdit").addEventListener("click", resetConteudoForm);
 
-  ["#filterDominio", "#filterInicio", "#filterFim"].forEach((selector) => {
+  $("#materiaSearch").addEventListener("input", () => {
+    state.materiaSearch = $("#materiaSearch").value;
+    renderAll();
+  });
+
+  ["#conteudoSearch", "#filterDominio", "#filterInicio", "#filterFim"].forEach((selector) => {
     $(selector).addEventListener("input", () => {
       state.conteudoFilters = {
+        busca: $("#conteudoSearch").value,
         dominio: $("#filterDominio").value,
         inicio: $("#filterInicio").value,
         fim: $("#filterFim").value,
       };
+      state.conteudoPage = 1;
       renderAll();
     });
   });
 
   $("#clearConteudoFilters").addEventListener("click", () => {
+    $("#conteudoSearch").value = "";
     $("#filterDominio").value = "";
     $("#filterInicio").value = "";
     $("#filterFim").value = "";
-    state.conteudoFilters = { dominio: "", inicio: "", fim: "" };
+    state.conteudoFilters = { busca: "", dominio: "", inicio: "", fim: "" };
+    state.conteudoPage = 1;
     renderAll();
   });
+
+  $("#exportConteudosCsv").addEventListener("click", exportConteudosCsv);
 
   $("#perfilForm").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -813,10 +1005,17 @@ function bindApp() {
   $("#dominioModal").addEventListener("click", (event) => {
     if (event.target.id === "dominioModal") closeDominioModal();
   });
+  $("#closeHistoricoModal").addEventListener("click", closeHistoricoModal);
+  $("#historicoModal").addEventListener("click", (event) => {
+    if (event.target.id === "historicoModal") closeHistoricoModal();
+  });
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !$("#dominioModal").classList.contains("hidden")) {
       closeDominioModal();
+    }
+    if (event.key === "Escape" && !$("#historicoModal").classList.contains("hidden")) {
+      closeHistoricoModal();
     }
   });
 
@@ -859,10 +1058,18 @@ function bindApp() {
     const concluirId = event.target.dataset.concluir;
     const reativarId = event.target.dataset.reativar;
     const evolucaoId = event.target.dataset.evolucao;
+    const historicoId = event.target.dataset.historico;
+    const conteudoPage = event.target.dataset.conteudoPage;
     const emptyView = event.target.dataset.emptyView;
 
     if (emptyView) {
       activateView(emptyView);
+      return;
+    }
+
+    if (conteudoPage) {
+      state.conteudoPage = Number(conteudoPage);
+      renderAll();
       return;
     }
 
@@ -927,6 +1134,10 @@ function bindApp() {
 
       if (evolucaoId) {
         openDominioModal(evolucaoId);
+      }
+
+      if (historicoId) {
+        await openHistoricoModal(historicoId);
       }
 
       const calendarDate = event.target.closest("[data-calendar-date]")?.dataset.calendarDate;

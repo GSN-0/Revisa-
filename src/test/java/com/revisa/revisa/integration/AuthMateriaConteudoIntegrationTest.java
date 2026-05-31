@@ -136,6 +136,12 @@ class AuthMateriaConteudoIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.quantidadeRevisoes").value(1));
 
+        mockMvc.perform(get("/conteudos/{id}/historico", conteudoId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].quantidadeRevisoes").value(1))
+                .andExpect(jsonPath("$[0].nivelDominio").value(4));
+
         mockMvc.perform(patch("/conteudos/{id}/concluir", conteudoId)
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
@@ -169,6 +175,59 @@ class AuthMateriaConteudoIntegrationTest {
                         .header("Authorization", "Bearer " + tokenB))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.mensagem").value("Conteúdo estudado não encontrado"));
+    }
+
+    @Test
+    void usuarioNaoDeveAcessarMateriaDeOutroUsuario() throws Exception {
+        String tokenA = cadastrarELogar("ana@email.com");
+        String tokenB = cadastrarELogar("bia@email.com");
+
+        Long materiaA = criarMateria(tokenA, "Java");
+
+        mockMvc.perform(get("/materias/{id}", materiaA)
+                        .header("Authorization", "Bearer " + tokenB))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.mensagem").value("Matéria não encontrada"));
+    }
+
+    @Test
+    void usuarioComumNaoDeveListarUsuarios() throws Exception {
+        cadastrarELogar("admin@email.com");
+        String tokenUsuario = cadastrarELogar("usuario@email.com");
+
+        mockMvc.perform(get("/users")
+                        .header("Authorization", "Bearer " + tokenUsuario))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensagem").value("Acesso negado"));
+    }
+
+    @Test
+    void tokenInvalidoDeveRetornarUnauthorized() throws Exception {
+        mockMvc.perform(get("/conteudos")
+                        .header("Authorization", "Bearer token-invalido"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.mensagem").value("Autenticação necessária"));
+    }
+
+    @Test
+    void devePopularDadosDemoApenasUmaVezPorConta() throws Exception {
+        String token = cadastrarELogar("demo@email.com");
+
+        mockMvc.perform(post("/demo/seed")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalConteudos").value(4));
+
+        mockMvc.perform(get("/dashboard")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalMaterias").value(2))
+                .andExpect(jsonPath("$.totalConteudos").value(4));
+
+        mockMvc.perform(post("/demo/seed")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensagem").value("Dados demo só podem ser carregados em uma conta vazia"));
     }
 
     private String cadastrarELogar(String email) throws Exception {

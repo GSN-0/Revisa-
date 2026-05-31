@@ -7,6 +7,11 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div id="appLoading" class="app-loading hidden" role="status" aria-live="polite">
+    <span class="loading-spinner" aria-hidden="true"></span>
+    <strong>Carregando seus estudos...</strong>
+  </div>
+
   <div id="authScreen" class="auth-screen">
     <section class="auth-panel">
       <div class="brand-block">
@@ -65,6 +70,7 @@
         <button class="nav-item" data-view="conteudos">Conteúdos</button>
         <button class="nav-item" data-view="revisoes">Revisões</button>
         <button class="nav-item" data-view="perfil">Perfil</button>
+        <button id="adminNavItem" class="nav-item hidden" data-view="admin">Admin</button>
       </nav>
 
       <button id="themeToggle" class="theme-toggle" type="button" aria-label="Alternar tema" title="Alternar tema">
@@ -122,6 +128,7 @@
             <span><strong id="metricProximas">0</strong> próximas</span>
           </div>
         </section>
+        <button id="seedDemoButton" class="secondary-action hidden" type="button">Carregar dados de exemplo</button>
 
         <div class="charts-grid">
           <section class="chart-panel">
@@ -169,6 +176,12 @@
           <button type="submit" class="primary-action">Salvar matéria</button>
           <button id="cancelMateriaEdit" type="button" class="secondary-action hidden">Cancelar</button>
         </form>
+        <div class="list-tools">
+          <label>Buscar matéria
+            <input id="materiaSearch" type="search" placeholder="Digite o nome da matéria">
+          </label>
+          <span id="materiaResultCount" class="filter-summary"></span>
+        </div>
         <div id="materiasList" class="item-list spaced"></div>
       </section>
 
@@ -191,6 +204,9 @@
           <button id="cancelConteudoEdit" type="button" class="secondary-action hidden">Cancelar edição</button>
         </form>
         <div class="filters-bar">
+          <label>Buscar conteúdo
+            <input id="conteudoSearch" type="search" placeholder="Título ou matéria">
+          </label>
           <label>Domínio
             <select id="filterDominio">
               <option value="">Todos</option>
@@ -208,8 +224,11 @@
             <input id="filterFim" type="date">
           </label>
           <button id="clearConteudoFilters" type="button" class="secondary-action">Limpar filtros</button>
+          <button id="exportConteudosCsv" type="button" class="secondary-action">Exportar CSV</button>
         </div>
+        <p id="conteudoFilterSummary" class="filter-summary"></p>
         <div id="conteudosList" class="item-list spaced"></div>
+        <div id="conteudosPagination" class="pagination-bar"></div>
       </section>
 
       <section id="revisoesView" class="view">
@@ -291,6 +310,15 @@
         </form>
       </section>
 
+      <section id="adminView" class="view">
+        <div class="section-title revision-heading">
+          <h3>Usuários cadastrados</h3>
+          <p class="item-meta">Visão administrativa disponível apenas para contas com perfil ADMIN.</p>
+        </div>
+        <div id="adminMetrics" class="metrics-grid"></div>
+        <div id="adminUsersList" class="item-list spaced"></div>
+      </section>
+
       <p id="appMessage" class="message"></p>
     </main>
   </div>
@@ -329,6 +357,20 @@
     </section>
   </div>
 
+  <div id="historicoModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="historicoModalTitle">
+    <section class="modal-panel">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">Revisões</p>
+          <h3 id="historicoModalTitle">Histórico</h3>
+        </div>
+        <button id="closeHistoricoModal" class="icon-action" type="button" aria-label="Fechar">×</button>
+      </div>
+      <div id="historicoList" class="history-list"></div>
+    </section>
+  </div>
+
+  <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

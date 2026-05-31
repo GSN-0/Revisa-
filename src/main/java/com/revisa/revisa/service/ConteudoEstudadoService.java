@@ -3,12 +3,15 @@ package com.revisa.revisa.service;
 import com.revisa.revisa.dto.ConteudoEstudadoRequest;
 import com.revisa.revisa.dto.ConteudoEstudadoResponse;
 import com.revisa.revisa.dto.EvolucaoRequest;
+import com.revisa.revisa.dto.RevisaoHistoricoResponse;
 import com.revisa.revisa.exception.BadRequestException;
 import com.revisa.revisa.exception.NotFoundException;
 import com.revisa.revisa.model.ConteudoEstudado;
 import com.revisa.revisa.model.Materia;
+import com.revisa.revisa.model.RevisaoHistorico;
 import com.revisa.revisa.repository.ConteudoEstudadoRepository;
 import com.revisa.revisa.repository.MateriaRepository;
+import com.revisa.revisa.repository.RevisaoHistoricoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -29,13 +32,16 @@ public class ConteudoEstudadoService {
 
     private final ConteudoEstudadoRepository conteudoRepository;
     private final MateriaRepository materiaRepository;
+    private final RevisaoHistoricoRepository revisaoHistoricoRepository;
 
     public ConteudoEstudadoService(
             ConteudoEstudadoRepository conteudoRepository,
-            MateriaRepository materiaRepository
+            MateriaRepository materiaRepository,
+            RevisaoHistoricoRepository revisaoHistoricoRepository
     ) {
         this.conteudoRepository = conteudoRepository;
         this.materiaRepository = materiaRepository;
+        this.revisaoHistoricoRepository = revisaoHistoricoRepository;
     }
 
     @Transactional
@@ -111,6 +117,7 @@ public class ConteudoEstudadoService {
         conteudo.setProximaRevisao(calcularProximaRevisao(novaQuantidade, conteudo.getNivelDominio()));
 
         ConteudoEstudado salvo = conteudoRepository.save(conteudo);
+        registrarHistorico(salvo);
         logger.info(
                 "Revisão registrada: email={}, conteudoId={}, quantidadeRevisoes={}, proximaRevisao={}",
                 email,
@@ -120,6 +127,15 @@ public class ConteudoEstudadoService {
         );
 
         return ConteudoEstudadoResponse.fromEntity(salvo);
+    }
+
+    public List<RevisaoHistoricoResponse> listarHistorico(String email, Long id) {
+        buscarConteudoDoUsuario(email, id);
+
+        return revisaoHistoricoRepository.findAllByConteudoIdOrderByDataRevisaoDescIdDesc(id)
+                .stream()
+                .map(RevisaoHistoricoResponse::fromEntity)
+                .toList();
     }
 
     @Transactional
@@ -279,5 +295,15 @@ public class ConteudoEstudadoService {
         };
 
         return hoje.plusDays(intervaloAjustado);
+    }
+
+    private void registrarHistorico(ConteudoEstudado conteudo) {
+        RevisaoHistorico historico = new RevisaoHistorico();
+        historico.setConteudo(conteudo);
+        historico.setDataRevisao(LocalDate.now(APP_ZONE));
+        historico.setQuantidadeRevisoes(conteudo.getQuantidadeRevisoes());
+        historico.setNivelDominio(conteudo.getNivelDominio());
+        historico.setProximaRevisao(conteudo.getProximaRevisao());
+        revisaoHistoricoRepository.save(historico);
     }
 }
